@@ -1,0 +1,53 @@
+# This workflow Builds, Scans and deploys a Docker Image to an Azure Container Registry 
+name: Build, Scan and Deploy to 2nd Container
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master ]
+
+# Starts the job and sets the type of runner
+jobs:
+  build-and-deploy-to-azure:
+    runs-on: ubuntu-20.04
+    
+    steps:
+    
+    # Checks out repository so your workflow can access it
+    - uses: actions/checkout@v1
+      
+    # Use docker login to log into ACR 
+    - name: Docker login to ACR
+      uses: azure/docker-login@v1
+      with:
+       # comment out the login-server parameter if using docker hub
+        login-server: ${{ secrets.CONTAINER_REGISTRY_NAME2 }}
+        username: ${{ secrets.CONTAINER_REGISTRY_USERNAME2 }}
+        password: ${{ secrets.CONTAINER_REGISTRY_PASSWORD2 }}
+      
+    # Build image 
+    - name: Build Docker Image 
+      run: |
+        docker build --file=Microsoft.DISCO.Web/Dockerfile -t ${{ secrets.CONTAINER_REGISTRY_NAME2 }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }} .
+    
+    # Scan image for vulnerabilities
+    - uses: Azure/container-scan@v0 
+      name: Scan image for vulnerabilities
+      id: container-scan
+      continue-on-error: true
+      with:
+        image-name: ${{ secrets.CONTAINER_REGISTRY_NAME2 }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }} 
+    
+    # Push image 
+    - name: Push Image to Azure Container Registry
+      run: |
+        docker push ${{ secrets.CONTAINER_REGISTRY_NAME2 }}/${{ secrets.IMAGE_NAME }}:${{ github.sha }}  
+
+    # Post Logs to AppInsights
+    - name: Post logs to appinsights
+      uses: Azure/publish-security-assessments@v0
+      with: 
+        scan-results-path: ${{ steps.container-scan.outputs.scan-report-path }}
+        connection-string: ${{ secrets.AZ_APPINSIGHTS_CONNECTION_STRING }}
+        subscription-token: ${{ secrets.AZ_SUBSCRIPTION_TOKEN }} 
