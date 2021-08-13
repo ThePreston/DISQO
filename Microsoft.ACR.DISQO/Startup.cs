@@ -1,3 +1,5 @@
+using Microsoft.ACR.DISQO.Service.AuthService;
+using Microsoft.ACR.DISQO.Service.ContainerService;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.AzureAD.UI;
 using Microsoft.AspNetCore.Authorization;
@@ -38,6 +40,10 @@ namespace Microsoft.ACR.DISQO
                 options.Filters.Add(new AuthorizeFilter(policy));
             });
             services.AddRazorPages();
+
+            services.AddTransient<IAuthService, AuthService>();
+
+            services.AddTransient<IContainerService, ContainerService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

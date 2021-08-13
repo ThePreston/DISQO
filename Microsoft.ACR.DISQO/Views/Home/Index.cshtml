@@ -1,8 +1,196 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿
+@{
+    ViewData["Title"] = "DISQO";
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://docs.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Welcome to DISQO</h1>
+    <p>Docker Image Scan Quarantine & Output</p>
+</div>
+
+    <script type="text/javascript">
+
+    $(document).ajaxStart(function () {
+        $('#overlay').fadeIn();
+    });
+
+    $(document).ajaxStop(function () {
+        $('#overlay').fadeOut();
+    });
+    
+    $(document).on("change", "#qSwitch", function(e){
+        e.preventDefault();
+        
+        $('#errorAlert').hide();
+
+        var enabled = this.checked;
+        
+        var repo = encodeURIComponent($("#hiddenSearch").val());
+
+        var passURL = $("#hiddenSetServerQuarantineAPIURL").val()  + "?repository=" + repo + "&enabled=" + enabled;
+
+        $.get(passURL, function (data) {     
+            if(data !== "")
+            {
+                $('#qSwitch').prop('checked', !enabled);
+                $('#errorAlert').text(data);
+                $('#errorAlert').show();
+            }
+        }).fail(function (jqXHR, textStatus, errorThrown) {
+                $('#errorAlert').text('jqXHR = ' + jqXHR.responseText + '; textStatus = ' + textStatus + '; errorThrown = ' + errorThrown);
+                $('#errorAlert').show();
+                $('#qSwitch').prop('checked', !enabled);
+            });
+    });
+
+    $(document).on("click", ".btnRow", function(e){
+        e.preventDefault();
+        var manifestId = encodeURIComponent(e.target.name);
+        
+        var repo = encodeURIComponent($("#hiddenSearch").val());
+
+        var passURL = $("#hiddenPassQuarantineAPIURL").val() + "?repository=" + repo + "&manifestid=" + manifestId;
+            
+        $.get(passURL, function (data) {                
+            $('#divTable').hide();
+            $('#errorAlert').hide();
+
+            $('#btnSearch').trigger('click');
+        });
+    });
+
+    $(document).ready(function () {
+        
+        $('#divTable').hide();
+        $('#errorAlert').hide();
+
+        $("#btnSearch").click(function (e) {
+            e.preventDefault();
+
+            if ($("#txtSearch").val().trim().length < 1) {
+                $('#errorAlert').text('Search Cannot be empty.');
+                $('#errorAlert').show();
+                return;
+            }
+            else
+                $('#errorAlert').hide();
+
+            var searchUrl = $("#hiddenSearchAPIURL").val() + '?searchParam=' + $("#txtSearch").val().trim();
+            
+            $.get(searchUrl, function (data) {
+
+                $('#divTable').show();
+
+                $("#hiddenJSON").val(JSON.stringify(data));
+                
+                $("#hiddenSearch").val($("#txtSearch").val().trim());
+
+                $("#qSwitch").prop('checked', data.quarantineEnabled);
+                
+                var recordCount = 0;
+
+                if(data.manifests != null)
+                {
+                    $('#tblManifests').bootstrapTable("load", data.manifests);
+                
+                    recordCount = $('#tblManifests').bootstrapTable('getData').length ?? 0;
+                }
+                recordCount > 0 ? $('#RecordCountLabel').text(recordCount + " - Rows returned") : $('#RecordCountLabel').text("");
+
+            }).fail(function (jqXHR, textStatus, errorThrown) {
+                $('#errorAlert').text('jqXHR = ' + jqXHR.responseText + '; textStatus = ' + textStatus + '; errorThrown = ' + errorThrown);
+                $('#errorAlert').show();
+            });
+        });
+    });
+
+    $(document).bind('keydown', function (e) {
+        if (e.which === 13) {
+            $('#btnSearch').trigger('click');
+        }
+    });
+
+    </script>
+    
+<div class="alert alert-danger" role="alert" id="errorAlert">
+
+</div>
+
+<div class="jumbotron shadow-lg p-3 mb-5 rounded rounded-lg">
+    <div class="row">
+        <div class="col-1">
+        </div>
+        <div class="col-6">
+            <label class="col-form-label col-form-label-lg" title="Container Registry">Container Registry and Image</label>
+        </div>
+        <div class="col-5 align-bottom">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-1">
+        </div>
+        <div class="col-7">
+            <input type="text" title="Azure Container Registry Server and image" placeholder="{container name}.azurecr.io/{image}" value="discoacrgh2.azurecr.io/discodemo" name="Search" id="txtSearch" class="form-control" />
+        </div>
+        <div class="col-4 align-bottom">
+            <input type="button" id="btnSearch" class="btn btn-primary" name="name" value="Search" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-1">
+        </div>
+        <div class="col-6">
+            <label class="col-form-label-lg" id="RecordCountLabel"></label>
+        </div>
+        <div class="col-5 align-bottom">
+        </div>
+    </div>
+
+</div>
+
+<div id="overlay" style="display:none; left: 50%; margin-left: -4em;" class="col-12">
+    <div class="spinner-border" style="width: 3rem; height: 3rem; " role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+    <br />
+    Loading...
+</div>
+
+<div id="divTable" class="card shadow-lg p-3 mb-5 rounded rounded-lg">
+    <div class="row">
+        <div class="custom-control custom-switch col-4">
+            <label>Server Quarantine All Images </label>
+        </div>
+        <div class="custom-control custom-switch col-8 ">
+            <input type="checkbox" class="custom-control-input" style="cursor: hand; cursor: pointer" id="qSwitch" checked>
+            <label class="custom-control-label " for="qSwitch" style="cursor: hand; cursor: pointer"></label>
+        </div>
+    </div>    
+
+    <div class="row">
+        <div class="col-12">            
+            <table id="tblManifests" class="table table-striped rounded rounded-lg text-nowrap " data-toggle="table" data-loading-text="Loading Please wait..." width="100%">
+                <thead class="table-primary">
+                    <tr>
+                        
+                        <th data-field="digest" data-formatter="RowNumberGenerator"></th> 
+                        <th data-field="security" data-sortable="true" data-formatter="TextGenerator">Arure Scan</th>              
+                        <th data-field="cicd" data-sortable="true" data-formatter="TextGenerator">CICD Scan</th>
+                        <th data-field="cicdurl" data-formatter="LinkGenerator">URL</th>
+                        <th data-field="quarantineState" data-sortable="true">Quarantine State</th>
+                        <th data-field="tags" data-sortable="true" data-formatter="TextGenerator">Tags</th>
+                        <th data-field="createdTime" data-formatter="DateFormatter" data-sortable="true" >Created Time</th>
+                        <th data-field="passable" data-formatter="ButtonGenerator"></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+
+    <input type="hidden" id="hiddenJSON" />
+    <input type="hidden" id="hiddenSearch" />
+    
+    <input type="text" id="hiddenSearchAPIURL" value='@Url.Action("Search")' style="display:none" />
+    <input type="text" id="hiddenPassQuarantineAPIURL" value='@Url.Action("PassQuarantine")'  style="display:none"/>
+    <input type="text" id="hiddenSetServerQuarantineAPIURL" value='@Url.Action("SetServerQuarantine")' style="display:none" />
 </div>
