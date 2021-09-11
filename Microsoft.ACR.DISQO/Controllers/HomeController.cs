@@ -19,14 +19,11 @@ namespace Microsoft.ACR.DISQO.Controllers
         
         private readonly ILogger<HomeController> _logger;
 
-        private readonly IConfiguration _config;
-
         private readonly IContainerService _service;
 
-        public HomeController(ILogger<HomeController> logger, IConfiguration configuration, IContainerService service)
+        public HomeController(ILogger<HomeController> logger, IContainerService service) //IConfiguration configuration, 
         {
             _logger = logger;
-            _config = configuration;
             _service = service;
 
         }

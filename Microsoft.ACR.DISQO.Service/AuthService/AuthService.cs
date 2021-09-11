@@ -13,7 +13,7 @@ namespace Microsoft.ACR.DISQO.Service.AuthService
     public class AuthService : IAuthService
     {
 
-        private IConfiguration _config;
+        private readonly IConfiguration _config;
 
         public AuthService(IConfiguration config)
         {

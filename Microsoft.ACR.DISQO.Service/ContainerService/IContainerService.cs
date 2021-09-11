@@ -11,8 +11,10 @@ namespace Microsoft.ACR.DISQO.Service.ContainerService
 
         Task<bool> PassQuarantine(string repositoryFullURI, string manifestId, bool pass);
 
-        Task<ImageManifest> GetRepositoryManifests(ACRModel model);// string repositoryName, string imageRepositoryName);
+        Task<ImageManifest> GetRepositoryManifests(ACRModel model);
 
         Task<bool> ProcessImageQuarantineStatus(ContainerImageRequest newImage);
+
+        Task<bool?> ImageScanAssessmentFail(ContainerImageRequest newImage);
     }
 }

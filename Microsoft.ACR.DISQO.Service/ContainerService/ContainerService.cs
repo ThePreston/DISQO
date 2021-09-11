@@ -18,7 +18,7 @@ namespace Microsoft.ACR.DISQO.Service.ContainerService
     public class ContainerService : IContainerService
     {
 
-        private IConfiguration _config;
+        private readonly IConfiguration _config;
 
         private readonly IAuthService _authService;
 
@@ -55,7 +55,7 @@ namespace Microsoft.ACR.DISQO.Service.ContainerService
 
                 var body = await resp.Content.ReadAsStringAsync();
 
-                _logger.LogInformation($"response Body = {body}");
+                _logger.LogInformation($"response status code = {resp.StatusCode},  response Body = {body}");
 
             }
             catch (Exception ex)
@@ -139,6 +139,23 @@ namespace Microsoft.ACR.DISQO.Service.ContainerService
                 return AddSecurityAssessmentstoImages(package, assessments);
 
             }
+        }
+
+        public async Task<bool?> ImageScanAssessmentFail(ContainerImageRequest newImage)
+        {
+
+            bool? retVal = null;
+
+            _logger.LogInformation($"entered ContainerService.ImagePassScan ");
+
+            var assessments = GetByDigestId(await GetImageAssessments(newImage.HostName), newImage.Target.Digest);
+
+            _logger.LogInformation($"Assessments for digest {newImage.Target.Digest} = {assessments.Count()}");
+
+            if (assessments.Count() > 0)
+                retVal = assessments.FirstOrDefault(x => x.Properties.Status.Code.ToLower() == "unhealthy") != null;
+
+            return retVal;
         }
 
         public async Task<bool> ProcessImageQuarantineStatus(ContainerImageRequest newImage)
